@@ -5,6 +5,8 @@ import pathlib
 import imageio
 import numpy as np
 
+import wandb
+
 
 class Recorder:
 
@@ -36,6 +38,7 @@ class StatsRecorder:
     self._reward = None
     self._unlocked = None
     self._stats = None
+    wandb.init(project='crafter-dreamerv2', entity='footoredo')
 
   def __getattr__(self, name):
     if name.startswith('__'):
@@ -59,6 +62,7 @@ class StatsRecorder:
       for key, value in info['achievements'].items():
         self._stats[f'achievement_{key}'] = value
       self._save()
+      wandb.log(self._stats)
     return obs, reward, done, info
 
   def _save(self):
