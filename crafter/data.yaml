@@ -37,45 +37,45 @@ walkable:
   - sand
 
 items:
-  health: {max: 9, initial: 9}
-  food: {max: 9, initial: 9}
-  drink: {max: 9, initial: 9}
-  energy: {max: 9, initial: 9}
-  sapling: {max: 9, initial: 0}
-  wood: {max: 9, initial: 0}
-  stone: {max: 9, initial: 0}
-  coal: {max: 9, initial: 0}
-  iron: {max: 9, initial: 0}
-  diamond: {max: 9, initial: 0}
-  wood_pickaxe: {max: 9, initial: 0}
-  stone_pickaxe: {max: 9, initial: 0}
-  iron_pickaxe: {max: 9, initial: 0}
-  wood_sword: {max: 9, initial: 0}
-  stone_sword: {max: 9, initial: 0}
-  iron_sword: {max: 9, initial: 0}
+  health: { max: 9, initial: 9 }
+  food: { max: 9, initial: 9 }
+  drink: { max: 9, initial: 9 }
+  energy: { max: 9, initial: 9 }
+  sapling: { max: 9, initial: 0 }
+  wood: { max: 9, initial: 0 }
+  stone: { max: 9, initial: 0 }
+  coal: { max: 9, initial: 0 }
+  iron: { max: 9, initial: 0 }
+  diamond: { max: 9, initial: 0 }
+  wood_pickaxe: { max: 9, initial: 0 }
+  stone_pickaxe: { max: 9, initial: 0 }
+  iron_pickaxe: { max: 9, initial: 0 }
+  wood_sword: { max: 9, initial: 0 }
+  stone_sword: { max: 9, initial: 0 }
+  iron_sword: { max: 9, initial: 0 }
 
 collect:
-  tree: {require: {}, receive: {wood: 1}, leaves: grass}
-  stone: {require: {wood_pickaxe: 1}, receive: {stone: 1}, leaves: path}
-  coal: {require: {wood_pickaxe: 1}, receive: {coal: 1}, leaves: path}
-  iron: {require: {stone_pickaxe: 1}, receive: {iron: 1}, leaves: path}
-  diamond: {require: {iron_pickaxe: 1}, receive: {diamond: 1}, leaves: path}
-  water: {require: {}, receive: {drink: 1}, leaves: water}
-  grass: {require: {}, receive: {sapling: 1}, probability: 0.1, leaves: grass}
+  tree: { require: { }, receive: { wood: 1 }, leaves: grass }
+  stone: { require: { wood_pickaxe: 1 }, receive: { stone: 1 }, leaves: path }
+  coal: { require: { wood_pickaxe: 1 }, receive: { coal: 1 }, leaves: path }
+  iron: { require: { stone_pickaxe: 1 }, receive: { iron: 1 }, leaves: path }
+  diamond: { require: { iron_pickaxe: 1 }, receive: { diamond: 1 }, leaves: path }
+  water: { require: { }, receive: { drink: 1 }, leaves: water }
+  grass: { require: { }, receive: { sapling: 1 }, probability: 0.1, leaves: grass }
 
 place:
-  stone: {uses: {stone: 1}, where: [grass, sand, path, water, lava], type: material}
-  table: {uses: {wood: 2}, where: [grass, sand, path], type: material}
-  furnace: {uses: {stone: 4}, where: [grass, sand, path], type: material}
-  plant: {uses: {sapling: 1}, where: [grass], type: object}
+  stone: { uses: { stone: 1 }, where: [ grass, sand, path, water, lava ], type: material }
+  table: { uses: { wood: 2 }, where: [ grass, sand, path ], type: material }
+  furnace: { uses: { stone: 4 }, where: [ grass, sand, path ], type: material }
+  plant: { uses: { sapling: 1 }, where: [ grass ], type: object }
 
 make:
-  wood_pickaxe: {uses: {wood: 1}, nearby: [table], gives: 1}
-  stone_pickaxe: {uses: {wood: 1, stone: 1}, nearby: [table], gives: 1}
-  iron_pickaxe: {uses: {wood: 1, coal: 1, iron: 1}, nearby: [table, furnace], gives: 1}
-  wood_sword: {uses: {wood: 1}, nearby: [table], gives: 1}
-  stone_sword: {uses: {wood: 1, stone: 1}, nearby: [table], gives: 1}
-  iron_sword: {uses: {wood: 1, coal: 1, iron: 1}, nearby: [table, furnace], gives: 1}
+  wood_pickaxe: { uses: { wood: 1 }, nearby: [ table ], gives: 1 }
+  stone_pickaxe: { uses: { wood: 1, stone: 1 }, nearby: [ table ], gives: 1 }
+  iron_pickaxe: { uses: { wood: 1, coal: 1, iron: 1 }, nearby: [ table, furnace ], gives: 1 }
+  wood_sword: { uses: { wood: 1 }, nearby: [ table ], gives: 1 }
+  stone_sword: { uses: { wood: 1, stone: 1 }, nearby: [ table ], gives: 1 }
+  iron_sword: { uses: { wood: 1, coal: 1, iron: 1 }, nearby: [ table, furnace ], gives: 1 }
 
 achievements:
   - collect_coal
@@ -100,3 +100,12 @@ achievements:
   - place_stone
   - place_table
   - wake_up
+
+partial_achievements:
+  collect_iron:
+    - collect_wood
+    - place_table
+    - make_wood_pickaxe
+    - collect_stone
+    - make_stone_pickaxe
+    - collect_iron
