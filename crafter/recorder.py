@@ -12,9 +12,9 @@ class Recorder:
 
   def __init__(
       self, env, directory, save_stats=True, save_video=True,
-      save_episode=True, video_size=(512, 512)):
+      save_episode=True, video_size=(512, 512), use_wandb=False):
     if directory and save_stats:
-      env = StatsRecorder(env, directory)
+      env = StatsRecorder(env, directory, use_wandb)
     if directory and save_video:
       env = VideoRecorder(env, directory, video_size)
     if directory and save_episode:
@@ -29,7 +29,7 @@ class Recorder:
 
 class StatsRecorder:
 
-  def __init__(self, env, directory):
+  def __init__(self, env, directory, use_wandb=False):
     self._env = env
     self._directory = pathlib.Path(directory).expanduser()
     self._directory.mkdir(exist_ok=True, parents=True)
@@ -38,7 +38,9 @@ class StatsRecorder:
     self._reward = None
     self._unlocked = None
     self._stats = None
-    wandb.init(project='crafter-dreamerv2', entity='footoredo')
+    self._use_wandb = use_wandb
+    if self._use_wandb:
+      wandb.init(project='crafter-dreamerv2', entity='footoredo')
 
   def __getattr__(self, name):
     if name.startswith('__'):
@@ -62,7 +64,8 @@ class StatsRecorder:
       for key, value in info['achievements'].items():
         self._stats[f'achievement_{key}'] = value
       self._save()
-      wandb.log(self._stats)
+      if self._use_wandb:
+        wandb.log(self._stats)
     return obs, reward, done, info
 
   def _save(self):
