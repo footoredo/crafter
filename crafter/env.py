@@ -2,6 +2,8 @@ import collections
 
 import numpy as np
 
+from copy import deepcopy
+
 from . import constants
 from . import engine
 from . import objects
@@ -26,7 +28,9 @@ class Env(BaseClass):
 
     def __init__(
             self, area=(64, 64), view=(9, 9), size=(64, 64),
-            reward=True, partial_achievements=None, disable_place_stone=False, length=10000, seed=None):
+            reward=True, partial_achievements=None, disable_place_stone=False, 
+            large_step=False, static_environment=False, achievement_reward_coef=1.0,
+            health_reward_coef=0.1, alive_reward=0.0, immortal=False, length=10000, seed=None):
         view = np.array(view if hasattr(view, '__len__') else (view, view))
         size = np.array(size if hasattr(size, '__len__') else (size, size))
         seed = np.random.randint(0, 2 ** 31 - 1) if seed is None else seed
@@ -37,6 +41,10 @@ class Env(BaseClass):
         self._length = length
         self._seed = seed
         self._episode = 0
+        self._achievement_reward_coef = achievement_reward_coef
+        self._health_reward_coef = health_reward_coef
+        self._alive_reward = alive_reward
+        self._immortal = immortal
         self._world = engine.World(area, constants.materials, (12, 12))
         self._textures = engine.Textures(constants.root / 'assets')
         item_rows = int(np.ceil(len(constants.items) / view[0]))
@@ -55,7 +63,14 @@ class Env(BaseClass):
             self._partial_achievements = set(constants.partial_achievements[partial_achievements])
         else:
             self._partial_achievements = None
+        self._actions = deepcopy(constants.actions)
+        if large_step:
+            if type(large_step) != int:
+                large_step = 4
+            for d in ["left", "right", "up", "down"]:
+                self._actions += f"move_{d}_{large_step}"
         self._disable_place_stone = disable_place_stone
+        self._static_environment = static_environment
         # Some libraries expect these attributes to be set.
         self.reward_range = None
         self.metadata = None
@@ -66,50 +81,61 @@ class Env(BaseClass):
 
     @property
     def action_space(self):
-        return DiscreteSpace(len(constants.actions))
+        return DiscreteSpace(len(self._actions))
 
     @property
     def action_names(self):
-        return constants.actions
+        return self._actions
+
+    def seed(self, _seed):
+        self._seed = _seed
+
+    def reset_episode(self):
+        self._episode = 0
 
     def reset(self):
+        # print(f"env seed: {self._seed}")
         center = (self._world.area[0] // 2, self._world.area[1] // 2)
         self._episode += 1
         self._step = 0
-        self._world.reset(seed=hash((self._seed, self._episode)) % (2 ** 31 - 1))
+        world_seed = hash((self._seed, 0 if self._static_environment else self._episode)) % (2 ** 31 - 1)
+        self._world.reset(seed=world_seed)
         self._update_time()
-        self._player = objects.Player(self._world, center)
+        self._player = objects.Player(self._world, center, self._immortal)
         self._last_health = self._player.health
         self._world.add(self._player)
         self._unlocked = set()
         worldgen.generate_world(self._world, self._player)
+        print(f"world.reset(), ep={self._episode}, seed={world_seed}")
+        # self._world.display()
         return self._obs()
 
     def step(self, action):
         self._step += 1
         self._update_time()
-        self._player.action = self._process_action(constants.actions[action])
+        self._player.action = self._process_action(self._actions[action])
         for obj in self._world.objects:
             if self._player.distance(obj) < 2 * max(self._view):
                 obj.update()
         if self._step % 10 == 0:
-            for chunk, objs in self._world.chunks.items():
+            for chunk, objs in sorted(self._world.chunks.items()):  # sorted to avoid randomness
                 # xmin, xmax, ymin, ymax = chunk
                 # center = (xmax - xmin) // 2, (ymax - ymin) // 2
                 # if self._player.distance(center) < 4 * max(self._view):
-                self._balance_chunk(chunk, objs)
+                self._balance_chunk(chunk, sorted(objs, key=lambda o: [type(o).__name__] + o.pos.tolist()))
         obs = self._obs()
-        reward = (self._player.health - self._last_health) / 10
+        reward = (self._player.health - self._last_health) * self._health_reward_coef
+        reward += self._alive_reward
         self._last_health = self._player.health
         unlocked = {
-            name for name, count in self._player.achievements.items()
+            name for name, count in sorted(self._player.achievements.items())  # sorted to avoid randomness
             if count > 0 and name not in self._unlocked}
         if unlocked:
             self._unlocked |= unlocked
             if self._partial_achievements is not None:
                 for name in unlocked:
                     if name in self._partial_achievements:
-                        reward += 1.0
+                        reward += self._achievement_reward_coef
                         break
             else:
                 reward += 1.0
@@ -189,9 +215,12 @@ class Env(BaseClass):
             empty = self._world[pos][1] is None
             away = self._player.distance(pos) >= span_dist
             if empty and away:
+                print(f"Step {self._step}, spawned {cls.__name__} at {pos}!")
                 self._world.add(ctor(pos))
         elif len(creatures) > int(target_max) and random.uniform() < despawn_prob:
-            obj = creatures[random.randint(0, len(creatures))]
+            i = random.randint(0, len(creatures))
+            obj = creatures[i]
             away = self._player.distance(obj.pos) >= despan_dist
             if away:
+                print(f"Step {self._step}, despawned creatures[{i}] in chunk {chunk}: {cls.__name__} at {obj.pos}!")
                 self._world.remove(obj)

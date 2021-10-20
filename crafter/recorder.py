@@ -12,9 +12,9 @@ class Recorder:
 
   def __init__(
       self, env, directory, save_stats=True, save_video=True,
-      save_episode=True, video_size=(512, 512), use_wandb=False):
+      save_episode=True, video_size=(512, 512), wandb_config=None):
     if directory and save_stats:
-      env = StatsRecorder(env, directory, use_wandb)
+      env = StatsRecorder(env, directory, wandb_config)
     if directory and save_video:
       env = VideoRecorder(env, directory, video_size)
     if directory and save_episode:
@@ -29,7 +29,7 @@ class Recorder:
 
 class StatsRecorder:
 
-  def __init__(self, env, directory, use_wandb=False):
+  def __init__(self, env, directory, wandb_config=None):
     self._env = env
     self._directory = pathlib.Path(directory).expanduser()
     self._directory.mkdir(exist_ok=True, parents=True)
@@ -38,9 +38,9 @@ class StatsRecorder:
     self._reward = None
     self._unlocked = None
     self._stats = None
-    self._use_wandb = use_wandb
+    self._use_wandb = wandb_config is not None
     if self._use_wandb:
-      wandb.init(project='crafter-dreamerv2', entity='footoredo')
+      wandb.init(**wandb_config)
 
   def __getattr__(self, name):
     if name.startswith('__'):

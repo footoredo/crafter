@@ -6,12 +6,13 @@ from . import engine
 
 class Object:
 
-  def __init__(self, world, pos):
+  def __init__(self, world, pos, immortal=False):
     self.world = world
     self.pos = np.array(pos)
     self.random = world.random
     self.inventory = {'health': 0}
     self.removed = False
+    self._immortal = immortal
 
   @property
   def texture(self):
@@ -27,7 +28,10 @@ class Object:
 
   @health.setter
   def health(self, value):
-    self.inventory['health'] = max(0, value)
+    if not self._immortal:
+      self.inventory['health'] = max(0, value)
+    else:
+      self.inventory['health'] = 9
 
   @property
   def all_dirs(self):
@@ -67,8 +71,8 @@ class Object:
 
 class Player(Object):
 
-  def __init__(self, world, pos):
-    super().__init__(world, pos)
+  def __init__(self, world, pos, immortal=False):
+    super().__init__(world, pos, immortal)
     self.facing = (0, 1)
     self.inventory = {
         name: info['initial'] for name, info in constants.items.items()}
@@ -172,11 +176,16 @@ class Player(Object):
     self._last_health = self.health
 
   def _move(self, direction):
+    step = 1
+    if '_' in direction:
+      direction, step = direction.split('_')
+      step = int(step)
     directions = dict(left=(-1, 0), right=(+1, 0), up=(0, -1), down=(0, +1))
     self.facing = directions[direction]
-    self.move(self.facing)
-    if self.world[self.pos][0] == 'lava':
-      self.health = 0
+    for _ in range(step):
+      self.move(self.facing)
+      if self.world[self.pos][0] == 'lava':
+        self.health = 0
 
   def _do_object(self, obj):
     damage = max([

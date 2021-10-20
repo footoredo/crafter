@@ -28,15 +28,22 @@ class World:
     self._chunk_size = chunk_size
     self._mat_names = {i: x for i, x in enumerate([None] + materials)}
     self._mat_ids = {x: i for i, x in enumerate([None] + materials)}
+    self.random = np.random.RandomState()
     self.reset()
 
   def reset(self, seed=None):
-    self.random = np.random.RandomState(seed)
+    self.random.seed(seed)
     self.daylight = 0.0
     self._chunks = collections.defaultdict(set)
     self._objects = [None]
     self._mat_map = np.zeros(self.area, np.uint8)
     self._obj_map = np.zeros(self.area, np.uint32)
+
+  def display(self):
+    for i in range(self.area[0]):
+      for j in range(self.area[1]):
+        print(f"{self.__getitem__((i, j))} ")
+      print()
 
   @property
   def objects(self):
@@ -74,6 +81,7 @@ class World:
     self._obj_map[tuple(obj.pos)] = 0
     old_chunk = self.chunk_key(obj.pos)
     new_chunk = self.chunk_key(pos)
+    print(f"{type(obj).__name__} move from {obj.pos} to {pos}")
     if old_chunk != new_chunk:
       self._chunks[old_chunk].remove(obj)
       self._chunks[new_chunk].add(obj)
