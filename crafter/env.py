@@ -106,7 +106,7 @@ class Env(BaseClass):
         self._world.add(self._player)
         self._unlocked = set()
         worldgen.generate_world(self._world, self._player)
-        print(f"world.reset(), ep={self._episode}, seed={world_seed}")
+        # print(f"world.reset(), ep={self._episode}, seed={world_seed}")
         # self._world.display()
         return self._obs()
 
@@ -215,12 +215,12 @@ class Env(BaseClass):
             empty = self._world[pos][1] is None
             away = self._player.distance(pos) >= span_dist
             if empty and away:
-                print(f"Step {self._step}, spawned {cls.__name__} at {pos}!")
+                # print(f"Step {self._step}, spawned {cls.__name__} at {pos}!")
                 self._world.add(ctor(pos))
         elif len(creatures) > int(target_max) and random.uniform() < despawn_prob:
             i = random.randint(0, len(creatures))
             obj = creatures[i]
             away = self._player.distance(obj.pos) >= despan_dist
             if away:
-                print(f"Step {self._step}, despawned creatures[{i}] in chunk {chunk}: {cls.__name__} at {obj.pos}!")
+                # print(f"Step {self._step}, despawned creatures[{i}] in chunk {chunk}: {cls.__name__} at {obj.pos}!")
                 self._world.remove(obj)

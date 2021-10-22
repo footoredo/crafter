@@ -81,7 +81,7 @@ class World:
     self._obj_map[tuple(obj.pos)] = 0
     old_chunk = self.chunk_key(obj.pos)
     new_chunk = self.chunk_key(pos)
-    print(f"{type(obj).__name__} move from {obj.pos} to {pos}")
+    # print(f"{type(obj).__name__} move from {obj.pos} to {pos}")
     if old_chunk != new_chunk:
       self._chunks[old_chunk].remove(obj)
       self._chunks[new_chunk].add(obj)
