@@ -69,13 +69,13 @@ def _set_object(world, pos, player, tunnels):
   if material not in constants.walkable:
     pass
   elif dist > 3 and material == 'grass' and uniform() > 0.985:
-    print(f"Initial spawn Cow at {(x, y)}!")
+    # print(f"Initial spawn Cow at {(x, y)}!")
     world.add(objects.Cow(world, (x, y)))
   elif dist > 10 and uniform() > 0.993:
-    print(f"Initial spawn Zombie at {(x, y)}!")
+    # print(f"Initial spawn Zombie at {(x, y)}!")
     world.add(objects.Zombie(world, (x, y), player))
   elif material == 'path' and tunnels[x, y] and uniform() > 0.95:
-    print(f"Initial spawn Skeleton at {(x, y)}!")
+    # print(f"Initial spawn Skeleton at {(x, y)}!")
     world.add(objects.Skeleton(world, (x, y), player))
 
 

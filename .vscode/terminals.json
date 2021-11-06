@@ -1,0 +1,22 @@
+{
+  "autorun": true,
+  "autokill": true,
+  "terminals": [
+    {
+      "name": "dreamerv2",
+      "cwd": "/h/hijjjj/playground/dreamerv2",
+      "focus": true,
+      "command": "conda activate crafter"
+    },
+    {
+      "name": "crafter",
+      "cwd": "/h/hijjjj/playground/crafter",
+      "command": "conda activate crafter"
+    },
+    {
+      "name": "baseline",
+      "cwd": "/h/hijjjj/playground/crafter-baselines/dreamerv2",
+      "command": "conda activate crafter"
+    }
+  ]
+}
