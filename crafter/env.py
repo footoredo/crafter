@@ -28,7 +28,7 @@ class Env(BaseClass):
 
     def __init__(
             self, area=(64, 64), view=(9, 9), size=(64, 64),
-            reward=True, partial_achievements=None, disable_place_stone=False, 
+            reward=True, show_inventory=True, partial_achievements=None, disable_place_stone=False, 
             large_step=False, static_environment=False, achievement_reward_coef=1.0,
             health_reward_coef=0.1, alive_reward=0.0, immortal=False, length=10000, seed=None):
         view = np.array(view if hasattr(view, '__len__') else (view, view))
@@ -45,6 +45,7 @@ class Env(BaseClass):
         self._health_reward_coef = health_reward_coef
         self._alive_reward = alive_reward
         self._immortal = immortal
+        self._show_inventory = show_inventory
         self._world = engine.World(area, constants.materials, (12, 12))
         self._textures = engine.Textures(constants.root / 'assets')
         item_rows = int(np.ceil(len(constants.items) / view[0]))
@@ -160,6 +161,8 @@ class Env(BaseClass):
         canvas = np.zeros(tuple(size) + (3,), np.uint8)
         local_view = self._local_view(self._player, unit)
         item_view = self._item_view(self._player.inventory, unit)
+        if not self._show_inventory:
+            item_view = np.zeros_like(item_view)
         view = local_view
         view = np.concatenate([local_view, item_view], 1)
         border = (size - (size // self._view) * self._view) // 2

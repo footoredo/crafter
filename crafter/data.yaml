@@ -109,3 +109,5 @@ partial_achievements:
     - collect_stone
     - make_stone_pickaxe
     - collect_iron
+  single:
+    - collect_wood
