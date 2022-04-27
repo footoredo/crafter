@@ -28,9 +28,9 @@ class Env(BaseClass):
 
     def __init__(
             self, area=(64, 64), view=(9, 9), size=(64, 64),
-            reward=True, show_inventory=True, partial_achievements=None, disable_place_stone=False, 
+            reward=True, render_centering=True, show_inventory=True, partial_achievements=None, disable_place_stone=False, 
             large_step=False, static_environment=False, achievement_reward_coef=1.0,
-            health_reward_coef=0.1, alive_reward=0.0, immortal=False, length=10000, seed=None):
+            health_reward_coef=0.1, alive_reward=0.0, immortal=False, idle_death=False, length=10000, seed=None):
         view = np.array(view if hasattr(view, '__len__') else (view, view))
         size = np.array(size if hasattr(size, '__len__') else (size, size))
         seed = np.random.randint(0, 2 ** 31 - 1) if seed is None else seed
@@ -60,6 +60,10 @@ class Env(BaseClass):
         self._player = None
         self._last_health = None
         self._unlocked = None
+        self._render_centering = render_centering
+        self._idle_death = idle_death
+        if idle_death:
+            self._idle_countdown = idle_death
         if partial_achievements is not None and partial_achievements in constants.partial_achievements.keys():
             self._partial_achievements = set(constants.partial_achievements[partial_achievements])
         else:
@@ -106,6 +110,7 @@ class Env(BaseClass):
         self._last_health = self._player.health
         self._world.add(self._player)
         self._unlocked = set()
+        self._idle_countdown = self._idle_death
         worldgen.generate_world(self._world, self._player)
         # print(f"world.reset(), ep={self._episode}, seed={world_seed}")
         # self._world.display()
@@ -131,16 +136,27 @@ class Env(BaseClass):
         unlocked = {
             name for name, count in sorted(self._player.achievements.items())  # sorted to avoid randomness
             if count > 0 and name not in self._unlocked}
+        truely_unlocked = False
         if unlocked:
             self._unlocked |= unlocked
             if self._partial_achievements is not None:
                 for name in unlocked:
                     if name in self._partial_achievements:
                         reward += self._achievement_reward_coef
+                        truely_unlocked = True
                         break
             else:
                 reward += 1.0
+                truely_unlocked = True
+        
         dead = self._player.health <= 0
+        if self._idle_death:
+            if truely_unlocked:
+                self._idle_countdown = self._idle_death
+            else:
+                self._idle_countdown -= 1
+                if self._idle_countdown == 0:
+                    dead = True
         over = self._length and self._step >= self._length
         done = dead or over
         info = {
@@ -165,7 +181,10 @@ class Env(BaseClass):
             item_view = np.zeros_like(item_view)
         view = local_view
         view = np.concatenate([local_view, item_view], 1)
-        border = (size - (size // self._view) * self._view) // 2
+        if self._render_centering:
+            border = (size - (size // self._view) * self._view) // 2
+        else:
+            border = (0, 0)
         (x, y), (w, h) = border, view.shape[:2]
         canvas[x: x + w, y: y + h] = view
         return canvas.transpose((1, 0, 2))
