@@ -7,6 +7,25 @@ from . import constants
 from . import objects
 
 
+def recover_objects(world, player, object_list):
+  for obj_name, obj_data in object_list:
+    pos = np.array(obj_data['pos'])
+    if obj_name == 'cow':
+      obj = objects.Cow(world, pos)
+    elif obj_name == 'zombie':
+      obj = objects.Zombie(world, pos, player)
+    elif obj_name == 'skeleton':
+      obj = objects.Skeleton(world, pos, player)
+    elif obj_name == 'arrow':
+      obj = objects.Arrow(world, pos, tuple(obj_data['facing']))
+    elif obj_name == 'plant':
+      obj = objects.Plant(world, pos)
+    elif obj_name == 'fence':
+      obj = objects.Fence(world, pos)
+    obj.load(obj_data)
+    world.add(obj)
+
+
 def generate_world(world, player):
   simplex = opensimplex.OpenSimplex(seed=world.random.randint(0, 2 ** 31 - 1))
   tunnels = np.zeros(world.area, np.bool)

@@ -15,6 +15,16 @@ class Object:
     self._immortal = immortal
 
   @property
+  def is_player(self):
+    return False
+
+  def export(self):
+    return ('object', {})
+
+  def load(self, data):
+    pass
+
+  @property
   def texture(self):
     raise 'unknown'
 
@@ -84,6 +94,37 @@ class Player(Object):
     self._thirst = 0
     self._fatigue = 0
     self._recover = 0
+
+  @property
+  def is_player(self):
+    return True
+
+  def export(self):
+    data = {
+      'pos': list(self.pos),
+      'facing': list(self.facing),
+      'sleeping': self.sleeping,
+      'health': self.health,
+      'hunger': self._hunger,
+      'thirst': self._thirst,
+      'fatigue': self._fatigue,
+      'recover': self._recover,
+      'inventory': self.inventory,
+      'achievements': self.achievements
+    }
+    return data
+
+  def load(self, data):
+    self.pos = np.array(data['pos'], dtype=int)
+    self.facing = tuple(data['facing'])
+    self.sleeping = data['sleeping']
+    self.health = data['health']
+    self._hunger = data['hunger']
+    self._thirst = data['thirst']
+    self._fatigue = data['fatigue']
+    self._recover = data['recover']
+    self.inventory = data['inventory']
+    self.achievements = data['achievements']
 
   @property
   def texture(self):
@@ -276,6 +317,17 @@ class Cow(Object):
     super().__init__(world, pos)
     self.health = 3
 
+  def export(self):
+    data = {
+      'pos': list(self.pos),
+      'health': self.health
+    }
+    return ('cow', data)
+
+  def load(self, data):
+    self.pos = np.array(data['pos'], dtype=int)
+    self.health = data['health']
+
   @property
   def texture(self):
     return 'cow'
@@ -295,6 +347,19 @@ class Zombie(Object):
     self.player = player
     self.health = 5
     self.cooldown = 0
+
+  def export(self):
+    data = {
+      'pos': list(self.pos),
+      'health': self.health,
+      'cooldown': self.cooldown
+    }
+    return ('zombie', data)
+
+  def load(self, data):
+    self.pos = np.array(data['pos'], dtype=int)
+    self.health = data['health']
+    self.cooldown = data['cooldown']
 
   @property
   def texture(self):
@@ -328,6 +393,19 @@ class Skeleton(Object):
     self.player = player
     self.health = 3
     self.reload = 0
+
+  def export(self):
+    data = {
+      'pos': list(self.pos),
+      'health': self.health,
+      'reload': self.reload
+    }
+    return ('skeleton', data)
+
+  def load(self, data):
+    self.pos = np.array(data['pos'], dtype=int)
+    self.health = data['health']
+    self.reload = data['reload']
 
   @property
   def texture(self):
@@ -366,6 +444,17 @@ class Arrow(Object):
     super().__init__(world, pos)
     self.facing = facing
 
+  def export(self):
+    data = {
+      'pos': list(self.pos),
+      'facing': list(self.facing)
+    }
+    return ('arrow', data)
+
+  def load(self, data):
+    self.pos = np.array(data['pos'], dtype=int)
+    self.facing = tuple(data['facing'])
+
   @property
   def texture(self):
     return {
@@ -400,6 +489,19 @@ class Plant(Object):
     self.health = 1
     self.grown = 0
 
+  def export(self):
+    data = {
+      'pos': list(self.pos),
+      'health': self.health,
+      'grown': self.grown
+    }
+    return ('plant', data)
+
+  def load(self, data):
+    self.pos = np.array(data['pos'], dtype=int)
+    self.health = data['health']
+    self.grown = data['grown']
+
   @property
   def texture(self):
     if self.ripe:
@@ -424,6 +526,15 @@ class Fence(Object):
 
   def __init__(self, world, pos):
     super().__init__(world, pos)
+
+  def export(self):
+    data = {
+      'pos': list(self.pos)
+    }
+    return ('fence', data)
+
+  def load(self, data):
+    self.pos = np.array(data['pos'], dtype=int)
 
   @property
   def texture(self):

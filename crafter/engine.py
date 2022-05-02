@@ -31,6 +31,21 @@ class World:
     self.random = np.random.RandomState()
     self.reset()
 
+  def export(self):
+    return {
+      'mat_map': self._mat_map.copy(),
+      'mat_names': self._mat_names
+    }
+
+  def export_objects(self):
+    return [obj.export() for obj in self._objects if obj is not None and not obj.is_player]
+
+  def load(self, data):
+    assert data['mat_map'].shape == self.area
+    for x in range(self.area[0]):
+      for y in range(self.area[1]):
+        self.__setitem__((x, y), data['mat_names'][data['mat_map'][x, y]])
+
   def reset(self, seed=None):
     self.random.seed(seed)
     self.daylight = 0.0

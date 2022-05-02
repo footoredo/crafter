@@ -57,6 +57,7 @@ class Env(BaseClass):
             objects.Player, objects.Cow, objects.Zombie,
             objects.Skeleton, objects.Arrow, objects.Plant])
         self._step = None
+        self._start_progress = None
         self._player = None
         self._last_health = None
         self._unlocked = None
@@ -80,6 +81,22 @@ class Env(BaseClass):
         self.reward_range = None
         self.metadata = None
 
+    # def serialize(self):
+    #     data = {
+    #         'area': list(self._area),
+    #         'view': list(self._view),
+    #         'size': list(self._size),
+    #         'reward': self._reward,
+    #         'length': self._length,
+    #         'seed': self._seed,
+    #         'achievement_reward_coef': self.__achievement_reward_coef,
+    #         'health_reward_coef': self._health_reward_coef,
+    #         'alive_reward': self._alive_reward,
+    #         'render_centering': self._render_centering,
+    #         'show_inventory': self._show_inventory,
+    #         'immortal': self._immortal,
+    #     }
+
     @property
     def observation_space(self):
         return BoxSpace(0, 255, tuple(self._size) + (3,), np.uint8)
@@ -98,23 +115,49 @@ class Env(BaseClass):
     def reset_episode(self):
         self._episode = 0
 
-    def reset(self):
+    def reset(self, data=None):
         # print(f"env seed: {self._seed}")
-        center = (self._world.area[0] // 2, self._world.area[1] // 2)
         self._episode += 1
         self._step = 0
+        self._idle_countdown = self._idle_death
         world_seed = hash((self._seed, 0 if self._static_environment else self._episode)) % (2 ** 31 - 1)
         self._world.reset(seed=world_seed)
-        self._update_time()
-        self._player = objects.Player(self._world, center, self._immortal)
-        self._last_health = self._player.health
-        self._world.add(self._player)
-        self._unlocked = set()
-        self._idle_countdown = self._idle_death
-        worldgen.generate_world(self._world, self._player)
+
+        if data is None:
+            self._start_progress = 0.3
+            self._update_time()
+            center = (self._world.area[0] // 2, self._world.area[1] // 2)
+            self._player = objects.Player(self._world, center, self._immortal)
+            self._last_health = self._player.health
+            self._world.add(self._player)
+            self._unlocked = set()
+            worldgen.generate_world(self._world, self._player)
+        else:
+            self.load(data)
         # print(f"world.reset(), ep={self._episode}, seed={world_seed}")
         # self._world.display()
         return self._obs()
+
+    def export(self):
+        return {
+            'world': self._world.export(),
+            'player': self._player.export(),
+            'objects': self._world.export_objects(),
+            'progress': self._progress
+        }
+
+    def load(self, data):
+        self._start_progress = data['progress']
+        self._update_time()
+        self._player = objects.Player(self._world, data['player']['pos'], self._immortal)
+        self._player.load(data['player'])
+        self._last_health = self._player.health
+        self._world.add(self._player)
+        self._unlocked = {
+            name for name, count in sorted(self._player.achievements.items())  # sorted to avoid randomness
+            if count > 0}
+        self._world.load(data['world'])
+        worldgen.recover_objects(self._world, self._player, data['objects'])
 
     def step(self, action):
         self._step += 1
@@ -198,10 +241,13 @@ class Env(BaseClass):
     def _obs(self):
         return self.render()
 
+    @property
+    def _progress(self):
+        return (self._step / 300) % 1 + self._start_progress
+
     def _update_time(self):
         # https://www.desmos.com/calculator/grfbc6rs3h
-        progress = (self._step / 300) % 1 + 0.3
-        daylight = 1 - np.abs(np.cos(np.pi * progress)) ** 3
+        daylight = 1 - np.abs(np.cos(np.pi * self._progress)) ** 3
         self._world.daylight = daylight
 
     def _balance_chunk(self, chunk, objs):
