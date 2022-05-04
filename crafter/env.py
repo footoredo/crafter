@@ -179,22 +179,29 @@ class Env(BaseClass):
         unlocked = {
             name for name, count in sorted(self._player.achievements.items())  # sorted to avoid randomness
             if count > 0 and name not in self._unlocked}
-        truely_unlocked = False
+        current_achievements = self._player.achievements.copy()
+        if self._partial_achievements is not None:
+            unlocked &= self._partial_achievements
+            current_achievements = { name: count for name, count in sorted(self._player.achievements.items()) if name in self._partial_achievements }
         if unlocked:
             self._unlocked |= unlocked
-            if self._partial_achievements is not None:
-                for name in unlocked:
-                    if name in self._partial_achievements:
-                        reward += self._achievement_reward_coef
-                        truely_unlocked = True
-                        break
-            else:
-                reward += 1.0
-                truely_unlocked = True
+            reward += self._achievement_reward_coef
+        # truely_unlocked = False
+        # if unlocked:
+        #     self._unlocked |= unlocked
+        #     if self._partial_achievements is not None:
+        #         for name in unlocked:
+        #             if name in self._partial_achievements:
+        #                 reward += self._achievement_reward_coef
+        #                 truely_unlocked = True
+        #                 break
+        #     else:
+        #         reward += self._achievement_reward_coef
+        #         truely_unlocked = True
         
         dead = self._player.health <= 0
         if self._idle_death:
-            if truely_unlocked:
+            if unlocked:
                 self._idle_countdown = self._idle_death
             else:
                 self._idle_countdown -= 1
@@ -204,7 +211,8 @@ class Env(BaseClass):
         done = dead or over
         info = {
             'inventory': self._player.inventory.copy(),
-            'achievements': self._player.achievements.copy(),
+            'achievements': current_achievements.copy(),
+            'unlocked': unlocked.copy(),
             'discount': 1 - float(dead),
             'semantic': self._sem_view(),
             'player_pos': self._player.pos,
