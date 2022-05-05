@@ -245,16 +245,16 @@ class Player(Object):
       self.inventory['fence'] += 1
       self.achievements['collect_fence'] += 1
     if isinstance(obj, Zombie):
-      obj.health -= damage
-      if obj.health <= 0:
+      if obj.health - damage <= 0:
+        obj.health -= damage
         self.achievements['defeat_zombie'] += 1
     if isinstance(obj, Skeleton):
-      obj.health -= damage
-      if obj.health <= 0:
+      if obj.health - damage <= 0:
+        obj.health -= damage
         self.achievements['defeat_skeleton'] += 1
     if isinstance(obj, Cow):
-      obj.health -= damage
-      if obj.health <= 0:
+      if obj.health - damage <= 0:
+        obj.health -= damage
         self.inventory['food'] += 6
         self.achievements['eat_cow'] += 1
         # TODO: Keep track of previous inventory state to do this in a more
@@ -315,7 +315,7 @@ class Cow(Object):
 
   def __init__(self, world, pos):
     super().__init__(world, pos)
-    self.health = 3
+    self.health = 2
 
   def export(self):
     data = {
