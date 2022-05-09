@@ -30,7 +30,7 @@ class Env(BaseClass):
             self, area=(64, 64), view=(9, 9), size=(64, 64),
             reward=True, render_centering=True, show_inventory=True, partial_achievements=None, disable_place_stone=False, 
             large_step=False, static_environment=False, achievement_reward_coef=1.0,
-            health_reward_coef=0.1, alive_reward=0.0, immortal=False, idle_death=False, length=10000, seed=None):
+            health_reward_coef=0.1, alive_reward=0.0, immortal=False, idle_death=False, only_one=False, reset_env_configs=None, length=10000, seed=None):
         view = np.array(view if hasattr(view, '__len__') else (view, view))
         size = np.array(size if hasattr(size, '__len__') else (size, size))
         seed = np.random.randint(0, 2 ** 31 - 1) if seed is None else seed
@@ -45,6 +45,7 @@ class Env(BaseClass):
         self._health_reward_coef = health_reward_coef
         self._alive_reward = alive_reward
         self._immortal = immortal
+        self._only_one = only_one
         self._show_inventory = show_inventory
         self._world = engine.World(area, constants.materials, (12, 12))
         self._textures = engine.Textures(constants.root / 'assets')
@@ -77,6 +78,7 @@ class Env(BaseClass):
                 self._actions += f"move_{d}_{large_step}"
         self._disable_place_stone = disable_place_stone
         self._static_environment = static_environment
+        self._reset_env_configs = reset_env_configs
         # Some libraries expect these attributes to be set.
         self.reward_range = None
         self.metadata = None
@@ -122,6 +124,10 @@ class Env(BaseClass):
         self._idle_countdown = self._idle_death
         world_seed = hash((self._seed, 0 if self._static_environment else self._episode)) % (2 ** 31 - 1)
         self._world.reset(seed=world_seed)
+
+        if data is None:
+            if self._reset_env_configs is not None:
+                data = self._reset_env_configs[self._world.random.randint(len(self._reset_env_configs))]
 
         if data is None:
             self._start_progress = 0.3
@@ -199,7 +205,7 @@ class Env(BaseClass):
         #         reward += self._achievement_reward_coef
         #         truely_unlocked = True
         
-        dead = self._player.health <= 0
+        dead = self._player.health <= 0 or (self._only_one and len(unlocked) > 0)
         if self._idle_death:
             if unlocked:
                 self._idle_countdown = self._idle_death

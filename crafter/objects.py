@@ -146,9 +146,13 @@ class Player(Object):
     material, obj = self.world[target]
     action = self.action
     if self.sleeping:
-      if self.inventory['energy'] < constants.items['energy']['max']:
-        action = 'sleep'
-      else:
+      # if self.inventory['energy'] < constants.items['energy']['max']:
+      #   action = 'sleep'
+      # else:
+      #   self.sleeping = False
+      #   self.achievements['wake_up'] += 1
+      action = 'sleep'
+      if self.inventory['energy'] >= constants.items['energy']['max']:
         self.sleeping = False
         self.achievements['wake_up'] += 1
     if action == 'noop':
@@ -472,7 +476,8 @@ class Arrow(Object):
     target = self.pos + self.facing
     material, obj = self.world[target]
     if obj:
-      obj.health -= 2
+      if isinstance(obj, Player):
+        obj.health -= 2
       self.world.remove(self)
     elif material not in self.walkable:
       self.world.remove(self)

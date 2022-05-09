@@ -61,7 +61,7 @@ collect:
   iron: { require: { stone_pickaxe: 1 }, receive: { iron: 1 }, leaves: path }
   diamond: { require: { iron_pickaxe: 1 }, receive: { diamond: 1 }, leaves: path }
   water: { require: { }, receive: { drink: 1 }, leaves: water }
-  grass: { require: { }, receive: { sapling: 1 }, probability: 1, leaves: grass }
+  sand: { require: { }, receive: { sapling: 1 }, probability: 1, leaves: sand }
 
 place:
   stone: { uses: { stone: 1 }, where: [ grass, sand, path, water, lava ], type: material }
