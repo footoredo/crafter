@@ -33,18 +33,34 @@ class World:
 
   def export(self):
     return {
-      'mat_map': self._mat_map.copy(),
-      'mat_names': self._mat_names
+      'mat_map': self._mat_map.copy()
+      # 'mat_names': self._mat_names
     }
+
+  def serialize(self):
+    mat_map = self._mat_map.flatten()
+    hl = mat_map.shape[0] // 2
+    return ((mat_map[:hl] << 4) ^ mat_map[hl:]).copy()
 
   def export_objects(self):
     return [obj.export() for obj in self._objects if obj is not None and not obj.is_player]
+
+  def serialize_objects(self):
+    return np.concatenate([obj.serialize() for obj in self._objects if obj is not None and not obj.is_player])
 
   def load(self, data):
     assert data['mat_map'].shape == self.area
     for x in range(self.area[0]):
       for y in range(self.area[1]):
-        self.__setitem__((x, y), data['mat_names'][data['mat_map'][x, y]])
+        self.__setitem__((x, y), self._mat_names[data['mat_map'][x, y]])
+
+  def deserialize(self, seq, pos):
+    mat_map = seq[pos: pos + self.area[0] * self.area[1] // 2]
+    mat_map = np.concatenate((mat_map >> 4, mat_map & 15)).reshape(*self.area)
+    for x in range(self.area[0]):
+      for y in range(self.area[1]):
+        self.__setitem__((x, y), self._mat_names[mat_map[x, y]])
+    return pos + self.area[0] * self.area[1] // 2
 
   def reset(self, seed=None):
     self.random.seed(seed)
@@ -104,6 +120,7 @@ class World:
 
   def __setitem__(self, pos, material):
     if material not in self._mat_ids:
+      # not gonna happen
       id_ = len(self._mat_ids)
       self._mat_ids[material] = id_
     self._mat_map[tuple(pos)] = self._mat_ids[material]

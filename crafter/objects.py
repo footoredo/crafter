@@ -1,7 +1,16 @@
+from base64 import encode
 import numpy as np
 
 from . import constants
 from . import engine
+
+
+def encode_facing(facing):
+  return ((facing[0] & 1) << 1) ^ ((1 + facing[0] + facing[1]) >> 1)
+
+FACING = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+def decode_facing(fid):
+  return FACING[fid]
 
 
 class Object:
@@ -21,7 +30,13 @@ class Object:
   def export(self):
     return ('object', {})
 
+  def serialize(self):
+    pass
+
   def load(self, data):
+    pass
+
+  def deserialize(self, seq, pos):
     pass
 
   @property
@@ -114,6 +129,15 @@ class Player(Object):
     }
     return data
 
+  def serialize(self):
+    seq = []
+    seq.append(self.pos.astype(np.uint8))
+    seq.append([encode_facing(self.facing), self.sleeping, self.health, int(self._hunger * 2), int(self._thirst * 2), self._fatigue + 10, int(self._recover * 2 + 30)])
+    seq.append([self.inventory[item] for item in sorted(constants.items.keys())])
+    seq.append([self.achievements[item] for item in sorted(constants.achievements)])
+    # print(seq)
+    return np.concatenate(seq, dtype=int).astype(np.uint8)
+
   def load(self, data):
     self.pos = np.array(data['pos'], dtype=int)
     self.facing = tuple(data['facing'])
@@ -125,6 +149,27 @@ class Player(Object):
     self._recover = data['recover']
     self.inventory = data['inventory']
     self.achievements = data['achievements']
+
+  def deserialize(self, seq, pos):
+    self.pos = seq[pos: pos + 2].copy().astype(int)
+    pos += 2
+    self.facing = decode_facing(seq[pos])
+    pos += 1
+    self.sleeping = bool(seq[pos])
+    pos += 1
+    self.health, hunger, thirst, fatigue, recover = seq[pos: pos + 5]
+    self._hunger = hunger / 2
+    self._thirst = thirst / 2
+    self._fatigue = fatigue - 10
+    self._recover = (recover - 30) / 2
+    pos += 5
+    for item in sorted(constants.items.keys()):
+      self.inventory[item] = seq[pos]
+      pos += 1
+    for item in sorted(constants.achievements):
+      self.achievements[item] = seq[pos]
+      pos += 1
+    return pos
 
   @property
   def texture(self):
@@ -315,6 +360,7 @@ class Player(Object):
     self.achievements[f'make_{name}'] += 1
 
 
+# id: 0
 class Cow(Object):
 
   def __init__(self, world, pos):
@@ -332,6 +378,14 @@ class Cow(Object):
     self.pos = np.array(data['pos'], dtype=int)
     self.health = data['health']
 
+  def serialize(self):
+    return np.array([0, self.pos[0], self.pos[1], self.health], dtype=np.uint8)
+
+  def deserialize(self, seq, pos):
+    self.pos = np.array([seq[pos + 1], seq[pos + 2]], dtype=int)
+    self.health = seq[pos + 3]
+    return pos + 4
+
   @property
   def texture(self):
     return 'cow'
@@ -344,6 +398,7 @@ class Cow(Object):
       self.move(direction)
 
 
+# id: 1
 class Zombie(Object):
 
   def __init__(self, world, pos, player):
@@ -364,6 +419,15 @@ class Zombie(Object):
     self.pos = np.array(data['pos'], dtype=int)
     self.health = data['health']
     self.cooldown = data['cooldown']
+
+  def serialize(self):
+    return np.array([1, self.pos[0], self.pos[1], self.health, self.cooldown], dtype=np.uint8)
+
+  def deserialize(self, seq, pos):
+    self.pos = np.array([seq[pos + 1], seq[pos + 2]], dtype=int)
+    self.health = seq[pos + 3]
+    self.cooldown = seq[pos + 4]
+    return pos + 5
 
   @property
   def texture(self):
@@ -390,6 +454,7 @@ class Zombie(Object):
         self.cooldown = 5
 
 
+# id: 2
 class Skeleton(Object):
 
   def __init__(self, world, pos, player):
@@ -410,6 +475,15 @@ class Skeleton(Object):
     self.pos = np.array(data['pos'], dtype=int)
     self.health = data['health']
     self.reload = data['reload']
+
+  def serialize(self):
+    return np.array([2, self.pos[0], self.pos[1], self.health, self.reload], dtype=np.uint8)
+
+  def deserialize(self, seq, pos):
+    self.pos = np.array([seq[pos + 1], seq[pos + 2]], dtype=int)
+    self.health = seq[pos + 3]
+    self.reload = seq[pos + 4]
+    return pos + 5
 
   @property
   def texture(self):
@@ -442,6 +516,7 @@ class Skeleton(Object):
       self.reload = 4
 
 
+# id: 3
 class Arrow(Object):
 
   def __init__(self, world, pos, facing):
@@ -458,6 +533,14 @@ class Arrow(Object):
   def load(self, data):
     self.pos = np.array(data['pos'], dtype=int)
     self.facing = tuple(data['facing'])
+
+  def serialize(self):
+    return np.array([3, self.pos[0], self.pos[1], encode_facing(self.facing)], dtype=np.uint8)
+
+  def deserialize(self, seq, pos):
+    self.pos = np.array([seq[pos + 1], seq[pos + 2]], dtype=int)
+    self.facing = decode_facing(seq[pos + 3])
+    return pos + 4
 
   @property
   def texture(self):
@@ -487,6 +570,7 @@ class Arrow(Object):
       self.move(self.facing)
 
 
+# id: 4
 class Plant(Object):
 
   def __init__(self, world, pos):
@@ -506,6 +590,15 @@ class Plant(Object):
     self.pos = np.array(data['pos'], dtype=int)
     self.health = data['health']
     self.grown = data['grown']
+
+  def serialize(self):
+    return np.array([4, self.pos[0], self.pos[1], self.health, self.grown >> 8, self.grown & ((1 << 8) - 1)], dtype=np.uint8)
+
+  def deserialize(self, seq, pos):
+    self.pos = np.array([seq[pos + 1], seq[pos + 2]], dtype=int)
+    self.health = seq[pos + 3]
+    self.grown = (seq[pos + 4] << 8) ^ seq[pos + 5]
+    return pos + 6
 
   @property
   def texture(self):
@@ -527,6 +620,7 @@ class Plant(Object):
       self.world.remove(self)
 
 
+# id: 5
 class Fence(Object):
 
   def __init__(self, world, pos):
@@ -540,6 +634,13 @@ class Fence(Object):
 
   def load(self, data):
     self.pos = np.array(data['pos'], dtype=int)
+
+  def serialize(self):
+    return np.array([5, self.pos[0], self.pos[1]], dtype=np.uint8)
+
+  def deserialize(self, seq, pos):
+    self.pos = np.array([seq[pos + 1], seq[pos + 2]], dtype=int)
+    return pos + 3
 
   @property
   def texture(self):

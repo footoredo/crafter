@@ -58,7 +58,7 @@ class Env(BaseClass):
             objects.Player, objects.Cow, objects.Zombie,
             objects.Skeleton, objects.Arrow, objects.Plant])
         self._step = None
-        self._start_progress = None
+        self._start_step = None
         self._player = None
         self._last_health = None
         self._unlocked = None
@@ -79,9 +79,11 @@ class Env(BaseClass):
         self._disable_place_stone = disable_place_stone
         self._static_environment = static_environment
         self._reset_env_configs = reset_env_configs
+        self._next_reset_env_config = None
         # Some libraries expect these attributes to be set.
         self.reward_range = None
         self.metadata = None
+        self._env_config_name = None
 
     # def serialize(self):
     #     data = {
@@ -126,11 +128,16 @@ class Env(BaseClass):
         self._world.reset(seed=world_seed)
 
         if data is None:
-            if self._reset_env_configs is not None:
+            if self._next_reset_env_config is not None:
+                data = self._next_reset_env_config
+                self._next_reset_env_config = None
+            elif self._reset_env_configs is not None:
                 data = self._reset_env_configs[self._world.random.randint(len(self._reset_env_configs))]
+                # self._env_config_name = name
 
         if data is None:
-            self._start_progress = 0.3
+            # self._start_progress = 0.3
+            self._start_step = 0
             self._update_time()
             center = (self._world.area[0] // 2, self._world.area[1] // 2)
             self._player = objects.Player(self._world, center, self._immortal)
@@ -139,31 +146,70 @@ class Env(BaseClass):
             self._unlocked = set()
             worldgen.generate_world(self._world, self._player)
         else:
+            name, data = data
+            self._env_config_name = name
             self.load(data)
         # print(f"world.reset(), ep={self._episode}, seed={world_seed}")
         # self._world.display()
         return self._obs()
+
+    def set_next_reset_config(self, name, data):
+        # print("Setting next_reset_config", name, data.shape, data.dtype)
+        self._next_reset_env_config = (name, data)
 
     def export(self):
         return {
             'world': self._world.export(),
             'player': self._player.export(),
             'objects': self._world.export_objects(),
-            'progress': self._progress
+            'step': self._start_step + self._step
         }
 
     def load(self, data):
-        self._start_progress = data['progress']
+        if isinstance(data, np.ndarray):
+            self.deserialize(data.astype(np.uint8))
+        else:
+            if 'progress' in data:
+                progress = data['progress'] - 0.3
+                if progress < 0.:
+                    progress += 1
+                self._start_step = int(progress * 300)
+            else:
+                self._start_step = data['step']
+            self._update_time()
+            self._player = objects.Player(self._world, data['player']['pos'], self._immortal)
+            self._player.load(data['player'])
+            self._last_health = self._player.health
+            self._world.add(self._player)
+            self._unlocked = {
+                name for name, count in sorted(self._player.achievements.items())  # sorted to avoid randomness
+                if count > 0}
+            self._world.load(data['world'])
+            worldgen.recover_objects(self._world, self._player, data['objects'])
+
+    def serialize(self):
+        seq = []
+        step = (self._start_step + self._step) % 300
+        seq.append([step >> 8, step & 255])
+        seq.append(self._player.serialize())
+        seq.append(self._world.serialize())
+        seq.append(self._world.serialize_objects())
+        return np.concatenate(seq, dtype=int).astype(np.uint8)
+
+    def deserialize(self, seq):
+        self._start_step = (seq[0] << 8) ^ seq[1]
+        pos = 2
         self._update_time()
-        self._player = objects.Player(self._world, data['player']['pos'], self._immortal)
-        self._player.load(data['player'])
+        self._player = objects.Player(self._world, (0, 0), self._immortal)
+        pos = self._player.deserialize(seq, pos)
         self._last_health = self._player.health
         self._world.add(self._player)
         self._unlocked = {
             name for name, count in sorted(self._player.achievements.items())  # sorted to avoid randomness
             if count > 0}
-        self._world.load(data['world'])
-        worldgen.recover_objects(self._world, self._player, data['objects'])
+        # print("Loaded, unlocked:", self._unlocked)
+        pos = self._world.deserialize(seq, pos)
+        worldgen.deserialize_objects(self._world, self._player, seq, pos)
 
     def step(self, action):
         self._step += 1
@@ -223,6 +269,7 @@ class Env(BaseClass):
             'semantic': self._sem_view(),
             'player_pos': self._player.pos,
             'reward': reward,
+            'init_config': self._env_config_name
         }
         if not self._reward:
             reward = 0.0
@@ -257,7 +304,7 @@ class Env(BaseClass):
 
     @property
     def _progress(self):
-        return (self._step / 300) % 1 + self._start_progress
+        return ((self._step + self._start_step) / 300) % 1 + 0.3
 
     def _update_time(self):
         # https://www.desmos.com/calculator/grfbc6rs3h

@@ -7,6 +7,9 @@ from . import constants
 from . import objects
 
 
+OBJECTS = [objects.Cow, objects.Zombie, objects.Skeleton, objects.Arrow, objects.Plant, objects.Fence]
+
+
 def recover_objects(world, player, object_list):
   for obj_name, obj_data in object_list:
     pos = np.array(obj_data['pos'])
@@ -23,6 +26,26 @@ def recover_objects(world, player, object_list):
     elif obj_name == 'fence':
       obj = objects.Fence(world, pos)
     obj.load(obj_data)
+    world.add(obj)
+
+
+def deserialize_objects(world, player, seq, pos):
+  L = seq.shape[0]
+  while pos < L:
+    obj_id = seq[pos]
+    if obj_id == 0:
+      obj = objects.Cow(world, (0, 0))
+    elif obj_id == 1:
+      obj = objects.Zombie(world, (0, 0), player)
+    elif obj_id == 2:
+      obj = objects.Skeleton(world, (0, 0), player)
+    elif obj_id == 3:
+      obj = objects.Arrow(world, (0, 0), (0, 1))
+    elif obj_id == 4:
+      obj = objects.Plant(world, (0, 0))
+    elif obj_id == 5:
+      obj = objects.Fence(world, (0, 0))
+    pos = obj.deserialize(seq, pos)
     world.add(obj)
 
 
