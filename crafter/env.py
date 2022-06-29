@@ -149,6 +149,7 @@ class Env(BaseClass):
             name, data = data
             self._env_config_name = name
             self.load(data)
+        self._current_achievements = self._player.achievements.copy()
         # print(f"world.reset(), ep={self._episode}, seed={world_seed}")
         # self._world.display()
         return self._obs()
@@ -231,10 +232,14 @@ class Env(BaseClass):
         unlocked = {
             name for name, count in sorted(self._player.achievements.items())  # sorted to avoid randomness
             if count > 0 and name not in self._unlocked}
-        current_achievements = self._player.achievements.copy()
+        events = {
+            name for name, count in sorted(self._player.achievements.items()) if count > self._current_achievements[name]
+        }
+        self._current_achievements = self._player.achievements.copy()
         if self._partial_achievements is not None:
             unlocked &= self._partial_achievements
-            current_achievements = { name: count for name, count in sorted(self._player.achievements.items()) if name in self._partial_achievements }
+            events &= self._partial_achievements
+            self._current_achievements = { name: count for name, count in sorted(self._player.achievements.items()) if name in self._partial_achievements }
         if unlocked:
             self._unlocked |= unlocked
             reward += self._achievement_reward_coef
@@ -263,7 +268,8 @@ class Env(BaseClass):
         done = dead or over
         info = {
             'inventory': self._player.inventory.copy(),
-            'achievements': current_achievements.copy(),
+            'achievements': self._current_achievements.copy(),
+            'events': events.copy(),
             'unlocked': unlocked.copy(),
             'discount': 1 - float(dead),
             'semantic': self._sem_view(),
