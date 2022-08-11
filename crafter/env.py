@@ -29,7 +29,7 @@ class Env(BaseClass):
     def __init__(
             self, area=(64, 64), view=(9, 9), size=(64, 64),
             reward=True, render_centering=True, show_inventory=True, partial_achievements=None, disable_place_stone=False, 
-            large_step=False, static_environment=False, achievement_reward_coef=1.0,
+            large_step=False, static_environment=False, achievement_reward_coef=1.0, repeat_deduction=0.0,
             health_reward_coef=0.1, alive_reward=0.0, immortal=False, idle_death=False, only_one=False, reset_env_configs=None, length=10000, seed=None):
         view = np.array(view if hasattr(view, '__len__') else (view, view))
         size = np.array(size if hasattr(size, '__len__') else (size, size))
@@ -44,6 +44,7 @@ class Env(BaseClass):
         self._achievement_reward_coef = achievement_reward_coef
         self._health_reward_coef = health_reward_coef
         self._alive_reward = alive_reward
+        self._repeat_deduction = repeat_deduction
         self._immortal = immortal
         self._only_one = only_one
         self._show_inventory = show_inventory
@@ -124,7 +125,8 @@ class Env(BaseClass):
         self._episode += 1
         self._step = 0
         self._idle_countdown = self._idle_death
-        world_seed = hash((self._seed, 0 if self._static_environment else self._episode)) % (2 ** 31 - 1)
+        # world_seed = hash((self._seed, 0 if self._static_environment else self._episode)) % (2 ** 31 - 1)
+        world_seed = 0 if self._static_environment else hash((self._seed, self._episode)) % (2 ** 31 - 1)
         self._world.reset(seed=world_seed)
 
         if data is None:
@@ -240,9 +242,11 @@ class Env(BaseClass):
             unlocked &= self._partial_achievements
             events &= self._partial_achievements
             self._current_achievements = { name: count for name, count in sorted(self._player.achievements.items()) if name in self._partial_achievements }
-        if unlocked:
+        if events:
             self._unlocked |= unlocked
-            reward += self._achievement_reward_coef
+            for name in events:
+                count = self._player.achievements[name]
+                reward += self._achievement_reward_coef * np.power(self._repeat_deduction, count - 1)
         # truely_unlocked = False
         # if unlocked:
         #     self._unlocked |= unlocked
