@@ -23,7 +23,8 @@ class staticproperty:
 
 class World:
 
-  def __init__(self, area, materials, chunk_size):
+  def __init__(self, area, materials, chunk_size, vanila):
+    self.vanila = vanila
     self.area = area
     self._chunk_size = chunk_size
     self._mat_names = {i: x for i, x in enumerate([None] + materials)}

@@ -30,7 +30,7 @@ class Env(BaseClass):
             self, area=(64, 64), view=(9, 9), size=(64, 64),
             reward=True, render_centering=True, show_inventory=True, partial_achievements=None, disable_place_stone=False, 
             large_step=False, static_environment=False, achievement_reward_coef=1.0, repeat_deduction=0.0,
-            health_reward_coef=0.1, alive_reward=0.0, immortal=False, idle_death=False, only_one=False, reset_env_configs=None, length=10000, seed=None):
+            health_reward_coef=0.1, alive_reward=0.0, immortal=False, idle_death=False, only_one=False, reset_env_configs=None, length=10000, vanila=False, seed=None):
         view = np.array(view if hasattr(view, '__len__') else (view, view))
         size = np.array(size if hasattr(size, '__len__') else (size, size))
         seed = np.random.randint(0, 2 ** 31 - 1) if seed is None else seed
@@ -48,7 +48,7 @@ class Env(BaseClass):
         self._immortal = immortal
         self._only_one = only_one
         self._show_inventory = show_inventory
-        self._world = engine.World(area, constants.materials, (12, 12))
+        self._world = engine.World(area, constants.materials, (12, 12), vanila=vanila)
         self._textures = engine.Textures(constants.root / 'assets')
         item_rows = int(np.ceil(len(constants.items) / view[0]))
         self._local_view = engine.LocalView(
