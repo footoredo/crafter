@@ -126,3 +126,28 @@ partial_achievements:
     - collect_diamond
   single:
     - collect_wood
+  limited:
+    - collect_wood
+    - place_table
+    - make_wood_pickaxe
+    - make_wood_sword
+    - collect_stone
+    - place_stone
+    - eat_cow
+  minimal:
+    - collect_wood
+    - place_table
+    - make_wood_pickaxe
+    - make_wood_sword
+    - collect_stone
+  limited_new:
+    - wake_up
+    - collect_wood
+    - place_table
+    - make_wood_pickaxe
+    - make_wood_sword
+    - collect_stone
+    - place_stone
+    - eat_cow
+    - collect_sapling
+    - place_plant

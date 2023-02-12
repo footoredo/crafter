@@ -234,6 +234,7 @@ class Env(BaseClass):
         unlocked = {
             name for name, count in sorted(self._player.achievements.items())  # sorted to avoid randomness
             if count > 0 and name not in self._unlocked}
+        self._unlocked |= unlocked
         events = {
             name for name, count in sorted(self._player.achievements.items()) if count > self._current_achievements[name]
         }
@@ -241,9 +242,8 @@ class Env(BaseClass):
         if self._partial_achievements is not None:
             unlocked &= self._partial_achievements
             events &= self._partial_achievements
-            self._current_achievements = { name: count for name, count in sorted(self._player.achievements.items()) if name in self._partial_achievements }
+            # self._current_achievements = { name: count for name, count in sorted(self._player.achievements.items()) if name in self._partial_achievements }
         if events:
-            self._unlocked |= unlocked
             for name in events:
                 count = self._player.achievements[name]
                 reward += self._achievement_reward_coef * np.power(self._repeat_deduction, count - 1)
