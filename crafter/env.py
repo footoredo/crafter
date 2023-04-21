@@ -16,7 +16,8 @@ try:
     DiscreteSpace = gym.spaces.Discrete
     BoxSpace = gym.spaces.Box
     DictSpace = gym.spaces.Dict
-    BaseClass = gym.Env
+    # BaseClass = gym.Env
+    BaseClass = object
 except ImportError:
     DiscreteSpace = collections.namedtuple('DiscreteSpace', 'n')
     BoxSpace = collections.namedtuple('BoxSpace', 'low, high, shape, dtype')
@@ -27,7 +28,7 @@ except ImportError:
 class Env(BaseClass):
 
     def __init__(
-            self, area=(64, 64), view=(9, 9), size=(64, 64),
+            self, area=(64, 64), view=(9, 9), size=(64, 64), add_meta=False,
             reward=True, render_centering=True, show_inventory=True, partial_achievements=None, disable_place_stone=False, 
             large_step=False, static_environment=False, achievement_reward_coef=1.0, repeat_deduction=0.0,
             health_reward_coef=0.1, alive_reward=0.0, immortal=False, idle_death=False, only_one=False, reset_env_configs=None, length=10000, vanila=False, seed=None):
@@ -38,6 +39,7 @@ class Env(BaseClass):
         self._view = view
         self._size = size
         self._reward = reward
+        self._add_meta = add_meta
         self._length = length
         self._seed = seed
         self._episode = 0
@@ -281,6 +283,8 @@ class Env(BaseClass):
             'reward': reward,
             'init_config': self._env_config_name
         }
+        if self._add_meta:
+            info["meta"] = self.export()
         if not self._reward:
             reward = 0.0
         return obs, reward, done, info

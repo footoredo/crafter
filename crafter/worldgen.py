@@ -51,7 +51,7 @@ def deserialize_objects(world, player, seq, pos):
 
 def generate_world(world, player):
   simplex = opensimplex.OpenSimplex(seed=world.random.randint(0, 2 ** 31 - 1))
-  tunnels = np.zeros(world.area, np.bool)
+  tunnels = np.zeros(world.area, bool)
   for x in range(world.area[0]):
     for y in range(world.area[1]):
       _set_material(world, (x, y), player, tunnels, simplex)
